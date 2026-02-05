@@ -40,6 +40,12 @@ struct ClockConfig {
     float weatherLon;
     char weatherUnits[16];  // "metric" or "imperial"
     unsigned long weatherUpdateInterval;  // ms
+    
+    // Weather display timing (randomized)
+    uint8_t weatherDisplayStartMin;  // Random start range min (seconds, e.g., 8)
+    uint8_t weatherDisplayStartMax;  // Random start range max (seconds, e.g., 28)
+    uint8_t weatherDurationMin;      // Random duration min (seconds, e.g., 15)
+    uint8_t weatherDurationMax;      // Random duration max (seconds, e.g., 25)
 };
 
 /**
@@ -90,6 +96,10 @@ public:
     float getWeatherLon() const { return _config.weatherLon; }
     const char* getWeatherUnits() const { return _config.weatherUnits; }
     unsigned long getWeatherUpdateInterval() const { return _config.weatherUpdateInterval; }
+    uint8_t getWeatherDisplayStartMin() const { return _config.weatherDisplayStartMin; }
+    uint8_t getWeatherDisplayStartMax() const { return _config.weatherDisplayStartMax; }
+    uint8_t getWeatherDurationMin() const { return _config.weatherDurationMin; }
+    uint8_t getWeatherDurationMax() const { return _config.weatherDurationMax; }
     
     // Convenience setters
     void setDeviceName(const char* name);

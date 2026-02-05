@@ -56,7 +56,7 @@ int lastDisplayedMinute = -1;  // Track for smart updates
 // Scheduled display timing
 bool showingScheduledWeather = false;
 unsigned long scheduledWeatherStart = 0;
-const unsigned long WEATHER_DISPLAY_DURATION = 30000;  // 30 seconds
+unsigned long currentWeatherDuration = 20000;  // Will be randomized
 
 // Sync timing
 unsigned long lastNtpSync = 0;
@@ -178,6 +178,10 @@ void handleScheduledDisplay() {
     int minutes = timeManager.getMinutes();
     int seconds = timeManager.getSeconds();
     
+    // Random trigger second for weather display (configurable range)
+    static int nextWeatherTriggerSecond = -1;
+    static int lastTriggerMinute = -1;
+    
     // Pre-fetch weather at minute 4 (1 min before display)
     // Also at 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59
     if ((minutes % 5 == 4) && seconds == 0) {
@@ -186,20 +190,40 @@ void handleScheduledDisplay() {
             Serial.println("Starting non-blocking weather prefetch...");
             weatherManager.startFetch();  // Non-blocking!
             lastPrefetchMinute = minutes;
+            
+            // Generate random trigger second from config range
+            int startMin = configManager.getWeatherDisplayStartMin();
+            int startMax = configManager.getWeatherDisplayStartMax();
+            nextWeatherTriggerSecond = random(startMin, startMax + 1);
+            Serial.printf("Next weather display at second %d\n", nextWeatherTriggerSecond);
         }
     }
     
-    // Show weather at minutes 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
-    if ((minutes % 5 == 0) && seconds == 0 && !showingScheduledWeather) {
-        Serial.println("Starting scheduled weather display");
-        previousMode = currentMode;
-        currentMode = MODE_WEATHER;
-        showingScheduledWeather = true;
-        scheduledWeatherStart = millis();
+    // Show weather at minutes 0, 5, 10, 15... at random second
+    if ((minutes % 5 == 0) && minutes != lastTriggerMinute && !showingScheduledWeather) {
+        if (nextWeatherTriggerSecond >= 0 && seconds == nextWeatherTriggerSecond) {
+            // Generate random duration from config range
+            int durMin = configManager.getWeatherDurationMin();
+            int durMax = configManager.getWeatherDurationMax();
+            currentWeatherDuration = random(durMin, durMax + 1) * 1000UL;
+            
+            Serial.printf("Starting weather display (:%02d) for %lu sec\n", 
+                          seconds, currentWeatherDuration / 1000);
+            previousMode = currentMode;
+            currentMode = MODE_WEATHER;
+            showingScheduledWeather = true;
+            scheduledWeatherStart = millis();
+            lastTriggerMinute = minutes;
+        }
     }
     
-    // Return to previous mode after 30 seconds
-    if (showingScheduledWeather && (millis() - scheduledWeatherStart >= WEATHER_DISPLAY_DURATION)) {
+    // Reset trigger tracking when minute changes
+    if (minutes % 5 != 0) {
+        lastTriggerMinute = -1;
+    }
+    
+    // Return to previous mode after random duration
+    if (showingScheduledWeather && (millis() - scheduledWeatherStart >= currentWeatherDuration)) {
         Serial.println("Ending scheduled weather display");
         currentMode = previousMode;
         showingScheduledWeather = false;

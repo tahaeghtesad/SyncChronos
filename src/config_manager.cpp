@@ -74,6 +74,12 @@ bool ConfigManager::load() {
     strlcpy(_config.weatherUnits, doc["weatherUnits"] | WEATHER_UNITS, sizeof(_config.weatherUnits));
     _config.weatherUpdateInterval = doc["weatherUpdateInterval"] | WEATHER_UPDATE_INTERVAL;
     
+    // Weather display timing (defaults: start 8-28s, duration 15-25s)
+    _config.weatherDisplayStartMin = doc["weatherDisplayStartMin"] | 8;
+    _config.weatherDisplayStartMax = doc["weatherDisplayStartMax"] | 28;
+    _config.weatherDurationMin = doc["weatherDurationMin"] | 15;
+    _config.weatherDurationMax = doc["weatherDurationMax"] | 25;
+    
     Serial.println("ConfigManager: Config loaded successfully");
     Serial.printf("  Device: %s\n", _config.deviceName);
     Serial.printf("  WiFi SSID: %s\n", _config.wifiSsid);
@@ -99,6 +105,10 @@ bool ConfigManager::save() {
     doc["weatherLon"] = _config.weatherLon;
     doc["weatherUnits"] = _config.weatherUnits;
     doc["weatherUpdateInterval"] = _config.weatherUpdateInterval;
+    doc["weatherDisplayStartMin"] = _config.weatherDisplayStartMin;
+    doc["weatherDisplayStartMax"] = _config.weatherDisplayStartMax;
+    doc["weatherDurationMin"] = _config.weatherDurationMin;
+    doc["weatherDurationMax"] = _config.weatherDurationMax;
     
     File file = LittleFS.open(CONFIG_FILE, "w");
     if (!file) {
@@ -134,6 +144,10 @@ void ConfigManager::setDefaults() {
     _config.weatherLon = WEATHER_LON;
     strlcpy(_config.weatherUnits, WEATHER_UNITS, sizeof(_config.weatherUnits));
     _config.weatherUpdateInterval = WEATHER_UPDATE_INTERVAL;
+    _config.weatherDisplayStartMin = 8;
+    _config.weatherDisplayStartMax = 28;
+    _config.weatherDurationMin = 15;
+    _config.weatherDurationMax = 25;
 }
 
 void ConfigManager::setDeviceName(const char* name) {

@@ -49,6 +49,10 @@ void WebPortal::handleGetConfig() {
     doc["weatherLat"] = cfg.weatherLat;
     doc["weatherLon"] = cfg.weatherLon;
     doc["weatherUnits"] = cfg.weatherUnits;
+    doc["weatherDisplayStartMin"] = cfg.weatherDisplayStartMin;
+    doc["weatherDisplayStartMax"] = cfg.weatherDisplayStartMax;
+    doc["weatherDurationMin"] = cfg.weatherDurationMin;
+    doc["weatherDurationMax"] = cfg.weatherDurationMax;
     
     String response;
     serializeJson(doc, response);
@@ -105,6 +109,18 @@ void WebPortal::handlePostConfig() {
     }
     if (doc["weatherUnits"].is<const char*>()) {
         strlcpy(cfg.weatherUnits, doc["weatherUnits"].as<const char*>(), sizeof(cfg.weatherUnits));
+    }
+    if (doc["weatherDisplayStartMin"].is<int>()) {
+        cfg.weatherDisplayStartMin = doc["weatherDisplayStartMin"].as<uint8_t>();
+    }
+    if (doc["weatherDisplayStartMax"].is<int>()) {
+        cfg.weatherDisplayStartMax = doc["weatherDisplayStartMax"].as<uint8_t>();
+    }
+    if (doc["weatherDurationMin"].is<int>()) {
+        cfg.weatherDurationMin = doc["weatherDurationMin"].as<uint8_t>();
+    }
+    if (doc["weatherDurationMax"].is<int>()) {
+        cfg.weatherDurationMax = doc["weatherDurationMax"].as<uint8_t>();
     }
     
     // Save to flash
@@ -396,6 +412,35 @@ String WebPortal::generateHtml() {
     html += R"rawliteral(>Celsius (°C)</option>
                 </select>
             </div>
+            <div class="field">
+                <label>Display Timing (seconds)</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div>
+                        <small>Start range min</small>
+                        <input type="number" id="weatherDisplayStartMin" min="0" max="59" value=")rawliteral";
+    html += String(cfg.weatherDisplayStartMin);
+    html += R"rawliteral(">
+                    </div>
+                    <div>
+                        <small>Start range max</small>
+                        <input type="number" id="weatherDisplayStartMax" min="0" max="59" value=")rawliteral";
+    html += String(cfg.weatherDisplayStartMax);
+    html += R"rawliteral(">
+                    </div>
+                    <div>
+                        <small>Duration min</small>
+                        <input type="number" id="weatherDurationMin" min="5" max="60" value=")rawliteral";
+    html += String(cfg.weatherDurationMin);
+    html += R"rawliteral(">
+                    </div>
+                    <div>
+                        <small>Duration max</small>
+                        <input type="number" id="weatherDurationMax" min="5" max="60" value=")rawliteral";
+    html += String(cfg.weatherDurationMax);
+    html += R"rawliteral(">
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="buttons">
@@ -430,7 +475,11 @@ String WebPortal::generateHtml() {
                 weatherApiKey: document.getElementById('weatherApiKey').value,
                 weatherLat: parseFloat(document.getElementById('weatherLat').value),
                 weatherLon: parseFloat(document.getElementById('weatherLon').value),
-                weatherUnits: document.getElementById('weatherUnits').value
+                weatherUnits: document.getElementById('weatherUnits').value,
+                weatherDisplayStartMin: parseInt(document.getElementById('weatherDisplayStartMin').value),
+                weatherDisplayStartMax: parseInt(document.getElementById('weatherDisplayStartMax').value),
+                weatherDurationMin: parseInt(document.getElementById('weatherDurationMin').value),
+                weatherDurationMax: parseInt(document.getElementById('weatherDurationMax').value)
             };
             
             try {
