@@ -68,6 +68,7 @@ bool ConfigManager::load() {
     _config.timezoneOffset = doc["timezoneOffset"] | UTC_OFFSET_SECONDS;
     _config.brightness = doc["brightness"] | VFD_DEFAULT_BRIGHTNESS;
     _config.showSeconds = doc["showSeconds"] | true;
+    _config.showActivityIndicators = doc["showActivityIndicators"] | true;
     strlcpy(_config.weatherApiKey, doc["weatherApiKey"] | WEATHER_API_KEY, sizeof(_config.weatherApiKey));
     _config.weatherLat = doc["weatherLat"] | WEATHER_LAT;
     _config.weatherLon = doc["weatherLon"] | WEATHER_LON;
@@ -100,6 +101,7 @@ bool ConfigManager::save() {
     doc["timezoneOffset"] = _config.timezoneOffset;
     doc["brightness"] = _config.brightness;
     doc["showSeconds"] = _config.showSeconds;
+    doc["showActivityIndicators"] = _config.showActivityIndicators;
     doc["weatherApiKey"] = _config.weatherApiKey;
     doc["weatherLat"] = _config.weatherLat;
     doc["weatherLon"] = _config.weatherLon;
@@ -139,6 +141,7 @@ void ConfigManager::setDefaults() {
     _config.timezoneOffset = UTC_OFFSET_SECONDS;
     _config.brightness = VFD_DEFAULT_BRIGHTNESS;
     _config.showSeconds = true;
+    _config.showActivityIndicators = true;
     strlcpy(_config.weatherApiKey, WEATHER_API_KEY, sizeof(_config.weatherApiKey));
     _config.weatherLat = WEATHER_LAT;
     _config.weatherLon = WEATHER_LON;

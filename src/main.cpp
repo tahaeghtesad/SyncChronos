@@ -52,6 +52,7 @@ DisplayMode currentMode = MODE_TIME;
 DisplayMode previousMode = MODE_TIME;  // For returning after weather display
 int lastDisplayedSecond = -1;  // Track for second-accurate updates
 int lastDisplayedMinute = -1;  // Track for smart updates
+unsigned long lastFastUpdate = 0; // Track for activity indicator blinking
 
 // Scheduled display timing
 bool showingScheduledWeather = false;
@@ -140,11 +141,27 @@ void loop() {
     // Handle web portal requests
     webPortal.handleClient();
     
-    // Update display exactly when the second changes
-    int currentSecond = timeManager.getSeconds();
-    if (currentSecond != lastDisplayedSecond) {
-        lastDisplayedSecond = currentSecond;
-        
+    // Determine if we need fast updates for activity indicators
+    bool showActivity = configManager.getShowActivityIndicators() && 
+                        (timeManager.isSyncing() || weatherManager.isFetching());
+    bool updateDisplay = false;
+
+    if (showActivity) {
+        // Fast update (10Hz) for smooth blinking
+        if (millis() - lastFastUpdate >= 100) {
+            lastFastUpdate = millis();
+            updateDisplay = true;
+        }
+    } else {
+        // Normal update exactly when the second changes
+        int currentSecond = timeManager.getSeconds();
+        if (currentSecond != lastDisplayedSecond) {
+            lastDisplayedSecond = currentSecond;
+            updateDisplay = true;
+        }
+    }
+
+    if (updateDisplay) {
         switch (currentMode) {
             case MODE_TIME:
                 displayTime();
@@ -238,7 +255,17 @@ void displayTime() {
     int seconds = timeManager.getSeconds();
     
     // Format: "12:34" or "12:34:56" with optional seconds
-    bool colonOn = (millis() / 500) % 2;
+    // Format: "12:34" or "12:34:56" with optional seconds
+    bool showActivity = configManager.getShowActivityIndicators() && 
+                        (timeManager.isSyncing() || weatherManager.isFetching());
+    
+    // Normal blink (1Hz) or Fast blink (5Hz)
+    bool colonOn;
+    if (showActivity) {
+        colonOn = (millis() / 100) % 2;
+    } else {
+        colonOn = (millis() / 500) % 2;
+    }
     
     if (configManager.getShowSeconds()) {
         // Show HH:MM:ss with blinking secondary colon
@@ -256,10 +283,32 @@ void displayTime() {
 
 void displayTimeWithSeconds() {
     char buffer[16];
-    snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",
-             timeManager.getHours(),
-             timeManager.getMinutes(),
-             timeManager.getSeconds());
+    
+    // Determine activity state for blink rate
+    bool showActivity = configManager.getShowActivityIndicators() && 
+                        (timeManager.isSyncing() || weatherManager.isFetching());
+    
+    // Normal blink (1Hz) or Fast blink (5Hz)
+    // Note: displayTimeWithSeconds usually shows all colons fixed, but we can blink them for activity
+    // or just blink the last one? Let's blink both colons if active.
+    
+    bool colonsOn = true;
+    if (showActivity) {
+        colonsOn = (millis() / 100) % 2;
+        
+        snprintf(buffer, sizeof(buffer), "%02d%c%02d%c%02d",
+                 timeManager.getHours(),
+                 colonsOn ? ':' : ' ',
+                 timeManager.getMinutes(),
+                 colonsOn ? ':' : ' ',
+                 timeManager.getSeconds());
+    } else {
+        // Standard display: fixed colons
+        snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",
+                 timeManager.getHours(),
+                 timeManager.getMinutes(),
+                 timeManager.getSeconds());
+    }
     
     display.clear();
     display.print(buffer);

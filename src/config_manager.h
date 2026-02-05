@@ -33,6 +33,7 @@ struct ClockConfig {
     // Display
     uint8_t brightness;  // 0-255
     bool showSeconds;    // Show seconds on clock face
+    bool showActivityIndicators; // Blink colons during network activity
     
     // Weather
     char weatherApiKey[CONFIG_API_KEY_MAX];
@@ -91,6 +92,7 @@ public:
     long getTimezoneOffset() const { return _config.timezoneOffset; }
     uint8_t getBrightness() const { return _config.brightness; }
     bool getShowSeconds() const { return _config.showSeconds; }
+    bool getShowActivityIndicators() const { return _config.showActivityIndicators; }
     const char* getWeatherApiKey() const { return _config.weatherApiKey; }
     float getWeatherLat() const { return _config.weatherLat; }
     float getWeatherLon() const { return _config.weatherLon; }

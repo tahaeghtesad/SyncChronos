@@ -45,6 +45,7 @@ void WebPortal::handleGetConfig() {
     doc["timezoneOffset"] = cfg.timezoneOffset;
     doc["brightness"] = cfg.brightness;
     doc["showSeconds"] = cfg.showSeconds;
+    doc["showActivityIndicators"] = cfg.showActivityIndicators;
     doc["weatherApiKey"] = cfg.weatherApiKey;
     doc["weatherLat"] = cfg.weatherLat;
     doc["weatherLon"] = cfg.weatherLon;
@@ -97,6 +98,9 @@ void WebPortal::handlePostConfig() {
     }
     if (doc["showSeconds"].is<bool>()) {
         cfg.showSeconds = doc["showSeconds"].as<bool>();
+    }
+    if (doc["showActivityIndicators"].is<bool>()) {
+        cfg.showActivityIndicators = doc["showActivityIndicators"].as<bool>();
     }
     if (doc["weatherApiKey"].is<const char*>()) {
         strlcpy(cfg.weatherApiKey, doc["weatherApiKey"].as<const char*>(), sizeof(cfg.weatherApiKey));
@@ -373,6 +377,13 @@ String WebPortal::generateHtml() {
     html += R"rawliteral(>
                     <span class="toggle-text">Show seconds on clock (HH:MM:ss)</span>
                 </label>
+                <div style="margin-top: 10px;"></div>
+                <label class="toggle-label">
+                    <input type="checkbox" id="showActivityIndicators")rawliteral";
+    if (cfg.showActivityIndicators) html += " checked";
+    html += R"rawliteral(>
+                    <span class="toggle-text">Show network activity (blinking colons)</span>
+                </label>
             </div>
         </div>
         
@@ -472,6 +483,7 @@ String WebPortal::generateHtml() {
                 timezoneOffset: parseInt(document.getElementById('timezoneOffset').value),
                 brightness: parseInt(document.getElementById('brightness').value),
                 showSeconds: document.getElementById('showSeconds').checked,
+                showActivityIndicators: document.getElementById('showActivityIndicators').checked,
                 weatherApiKey: document.getElementById('weatherApiKey').value,
                 weatherLat: parseFloat(document.getElementById('weatherLat').value),
                 weatherLon: parseFloat(document.getElementById('weatherLon').value),
