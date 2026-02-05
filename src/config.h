@@ -55,7 +55,7 @@
 // =============================================================================
 // Display Update Settings
 // =============================================================================
-#define DISPLAY_UPDATE_INTERVAL 100 // Update display every 100ms
+#define DISPLAY_UPDATE_INTERVAL 1000 // Update display every 1 second
 
 // =============================================================================
 // Debug Settings

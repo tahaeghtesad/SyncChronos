@@ -2,12 +2,26 @@
  * Weather Manager Header
  * 
  * Fetches current weather data from OpenWeatherMap API
+ * Uses non-blocking HTTP requests via state machine
  */
 
 #ifndef WEATHER_MANAGER_H
 #define WEATHER_MANAGER_H
 
 #include <Arduino.h>
+#include <WiFiClient.h>
+
+// Fetch states for non-blocking operation
+enum WeatherFetchState {
+    FETCH_IDLE,
+    FETCH_CONNECTING,
+    FETCH_SENDING,
+    FETCH_WAITING_RESPONSE,
+    FETCH_READING_HEADERS,
+    FETCH_READING_BODY,
+    FETCH_COMPLETE,
+    FETCH_ERROR
+};
 
 class WeatherManager {
 public:
@@ -19,58 +33,87 @@ public:
     void begin();
     
     /**
-     * Update weather data if interval has elapsed
-     * Call this regularly from loop()
+     * Process non-blocking weather operations
+     * Call this regularly from loop() - handles state machine
      */
     void update();
     
     /**
-     * Force an immediate weather update
+     * Start a non-blocking weather fetch
+     * Returns immediately, check isFetching() for status
+     */
+    void startFetch();
+    
+    /**
+     * Check if a fetch is in progress
+     */
+    bool isFetching() const;
+    
+    /**
+     * Force a blocking weather update (legacy)
      * @return true if successful
      */
     bool fetch();
     
     /**
      * Get current temperature
-     * @return Temperature in configured units (F or C)
      */
     float getTemperature() const;
     
     /**
      * Get weather condition code
-     * @return OpenWeatherMap condition code (e.g., 800 = clear)
      */
     int getConditionCode() const;
     
     /**
-     * Get short weather description
-     * @return 3-char code like "SUN", "CLD", "RAN", "SNO"
+     * Get short weather description (3 chars)
      */
     const char* getConditionShort() const;
     
     /**
      * Check if weather data is valid and recent
-     * @return true if data is available and not stale
      */
     bool isValid() const;
     
     /**
      * Get time since last successful update
-     * @return Milliseconds since last update
      */
     unsigned long getLastUpdateAge() const;
 
 private:
+    // Weather data
     float _temperature;
     int _conditionCode;
     char _conditionShort[4];
     unsigned long _lastUpdate;
     bool _valid;
     
+    // Non-blocking fetch state
+    WeatherFetchState _fetchState;
+    WiFiClient _client;
+    String _responseBuffer;
+    unsigned long _fetchStartTime;
+    static const unsigned long FETCH_TIMEOUT = 10000;  // 10 seconds
+    
+    /**
+     * Process the state machine for non-blocking fetch
+     */
+    void processFetchState();
+    
+    /**
+     * Parse JSON response and extract weather data
+     */
+    bool parseResponse(const String& json);
+    
     /**
      * Convert condition code to short description
      */
     void updateConditionShort();
+    
+    /**
+     * Build the API request string
+     */
+    String buildRequest();
 };
 
 #endif // WEATHER_MANAGER_H

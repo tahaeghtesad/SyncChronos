@@ -51,6 +51,7 @@ enum DisplayMode {
 DisplayMode currentMode = MODE_TIME;
 DisplayMode previousMode = MODE_TIME;  // For returning after weather display
 unsigned long lastDisplayUpdate = 0;
+int lastDisplayedMinute = -1;  // Track for smart updates
 
 // Scheduled display timing
 bool showingScheduledWeather = false;
@@ -154,7 +155,11 @@ void loop() {
                 displayTimeWithSeconds();
                 break;
             case MODE_WEATHER:
-                displayWeather();
+                // Only update weather display once (static content)
+                if (timeManager.getMinutes() != lastDisplayedMinute) {
+                    displayWeather();
+                    lastDisplayedMinute = timeManager.getMinutes();
+                }
                 break;
             case MODE_CUSTOM:
                 // Custom mode - implement as needed
@@ -178,8 +183,8 @@ void handleScheduledDisplay() {
     if ((minutes % 5 == 4) && seconds == 0) {
         static int lastPrefetchMinute = -1;
         if (minutes != lastPrefetchMinute) {
-            Serial.println("Pre-fetching weather for scheduled display...");
-            weatherManager.fetch();
+            Serial.println("Starting non-blocking weather prefetch...");
+            weatherManager.startFetch();  // Non-blocking!
             lastPrefetchMinute = minutes;
         }
     }
