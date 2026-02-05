@@ -50,7 +50,7 @@ enum DisplayMode {
 
 DisplayMode currentMode = MODE_TIME;
 DisplayMode previousMode = MODE_TIME;  // For returning after weather display
-unsigned long lastDisplayUpdate = 0;
+int lastDisplayedSecond = -1;  // Track for second-accurate updates
 int lastDisplayedMinute = -1;  // Track for smart updates
 
 // Scheduled display timing
@@ -140,9 +140,10 @@ void loop() {
     // Handle web portal requests
     webPortal.handleClient();
     
-    // Update display at configured interval
-    if (millis() - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
-        lastDisplayUpdate = millis();
+    // Update display exactly when the second changes
+    int currentSecond = timeManager.getSeconds();
+    if (currentSecond != lastDisplayedSecond) {
+        lastDisplayedSecond = currentSecond;
         
         switch (currentMode) {
             case MODE_TIME:
@@ -155,7 +156,7 @@ void loop() {
                 displayTimeWithSeconds();
                 break;
             case MODE_WEATHER:
-                // Only update weather display once (static content)
+                // Only update weather display once per minute (static content)
                 if (timeManager.getMinutes() != lastDisplayedMinute) {
                     displayWeather();
                     lastDisplayedMinute = timeManager.getMinutes();
