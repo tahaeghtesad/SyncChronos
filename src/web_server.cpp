@@ -547,13 +547,29 @@ String WebPortal::generateHtml() {
             }
         }
         
-        function selectLocation(lat, lon, name) {
+        async function selectLocation(lat, lon, name) {
             document.getElementById('weatherLat').value = lat.toFixed(4);
             document.getElementById('weatherLon').value = lon.toFixed(4);
             document.getElementById('locationDisplay').textContent = name;
             document.getElementById('searchResults').innerHTML = '';
             document.getElementById('citySearch').value = '';
-            showStatus('Location set: ' + lat.toFixed(4) + ', ' + lon.toFixed(4), false);
+            showStatus('Location set. Fetching timezone...', false);
+            
+            // Auto-detect timezone
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code&timezone=auto`);
+                const data = await res.json();
+                
+                if (data.utc_offset_seconds !== undefined) {
+                    const offset = data.utc_offset_seconds;
+                    document.getElementById('timezoneOffset').value = offset;
+                    showStatus(`Location set. Timezone updated to UTC${offset >= 0 ? '+' : ''}${offset/3600}h`, false);
+                } else {
+                    showStatus('Location set. Could not detect timezone.', true);
+                }
+            } catch(e) {
+                showStatus('Location set. Timezone fetch failed.', true);
+            }
         }
         
         document.getElementById('citySearch').addEventListener('keypress', function(e) {

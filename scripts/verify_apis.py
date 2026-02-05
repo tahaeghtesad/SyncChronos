@@ -1,5 +1,7 @@
 import re
-import requests
+import urllib.request
+import urllib.error
+import json
 import socket
 import struct
 import time
@@ -30,16 +32,34 @@ def check_weather(api_key):
     print(f"Checking OpenWeatherMap API Key: {api_key[:5]}...")
     url = f"https://api.openweathermap.org/data/2.5/weather?q=London&appid={api_key}"
     try:
-        r = requests.get(url)
-        if r.status_code == 200:
-            print("✅ Weather API: Success")
-            return True
-        else:
-            print(f"❌ Weather API: Failed ({r.status_code}) - {r.json().get('message', '')}")
-            return False
+        with urllib.request.urlopen(url) as response:
+            if response.status == 200:
+                print("✅ Weather API: Success")
+                return True
+    except urllib.error.HTTPError as e:
+        print(f"❌ Weather API: Failed ({e.code}) - {e.reason}")
     except Exception as e:
         print(f"❌ Weather API: Error - {e}")
-        return False
+    return False
+
+def check_timezone():
+    print("Checking Open-Meteo Timezone API...")
+    # Test with London coordinates
+    url = "https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&current=weather_code&timezone=auto"
+    try:
+        with urllib.request.urlopen(url) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode())
+                if 'utc_offset_seconds' in data:
+                    print(f"✅ Timezone API: Success (Offset: {data['utc_offset_seconds']}s)")
+                    return True
+                else:
+                    print("❌ Timezone API: Response format unexpected")
+    except urllib.error.HTTPError as e:
+        print(f"❌ Timezone API: Failed ({e.code}) - {e.reason}")
+    except Exception as e:
+        print(f"❌ Timezone API: Error - {e}")
+    return False
 
 def check_ntp(server):
     print(f"Checking NTP Server: {server}")
@@ -66,6 +86,8 @@ if __name__ == "__main__":
     else:
         print("⚠️ Weather API Key not found in config.h")
         
+    check_timezone()
+    
     if 'ntp_server' in cfg:
         check_ntp(cfg['ntp_server'])
     else:
