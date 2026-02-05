@@ -1,0 +1,29 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+.build/
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Credentials (never commit these!)
+credentials.h
+secrets.h

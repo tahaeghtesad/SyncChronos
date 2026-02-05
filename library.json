@@ -1,0 +1,23 @@
+{
+    "name": "VFDClock",
+    "version": "1.0.0",
+    "description": "ESP8266-based clock with FUTABA 8-MD-06INKM VFD display",
+    "keywords": ["vfd", "clock", "esp8266", "futaba", "ntp"],
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your.email@example.com"
+        }
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/VFDClock.git"
+    },
+    "license": "MIT",
+    "homepage": "https://github.com/yourusername/VFDClock",
+    "frameworks": ["arduino"],
+    "platforms": ["espressif8266"],
+    "dependencies": {
+        "arduino-libraries/NTPClient": "^3.2.1"
+    }
+}
