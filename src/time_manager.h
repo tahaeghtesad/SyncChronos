@@ -50,6 +50,11 @@ public:
     bool sync();
 
     /**
+     * Manually set the time (useful for testing/debugging)
+     */
+    void setTime(unsigned long epoch);
+
+    /**
      * Check if an NTP sync is in progress
      */
     bool isSyncing() const;

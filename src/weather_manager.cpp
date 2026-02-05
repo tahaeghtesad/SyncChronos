@@ -134,7 +134,7 @@ void WeatherManager::processFetchState() {
             
         case FETCH_COMPLETE:
             _client.stop();
-            if (parseResponse(_responseBuffer)) {
+            if (parseWeatherJson(_responseBuffer)) {
                 _lastUpdate = millis();
                 _valid = true;
                 Serial.printf("Weather: %.1f%s %s (code %d)\n", 
@@ -172,24 +172,18 @@ String WeatherManager::buildRequest() {
     return request;
 }
 
-bool WeatherManager::parseResponse(const String& json) {
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, json);
+bool WeatherManager::parseWeatherJson(const String& json) {
+    WeatherData data = WeatherParser::parse(json);
     
-    if (error) {
-        Serial.printf("Weather: JSON error: %s\n", error.c_str());
+    if (!data.valid) {
+        Serial.println("Weather: Parse failed");
         return false;
     }
     
-    if (!doc["main"]["temp"].is<float>()) {
-        Serial.println("Weather: Missing temperature");
-        return false;
-    }
+    _temperature = data.temp;
+    _conditionCode = data.conditionCode;
+    strcpy(_conditionShort, data.conditionShort);
     
-    _temperature = doc["main"]["temp"].as<float>();
-    _conditionCode = doc["weather"][0]["id"].as<int>();
-    
-    updateConditionShort();
     return true;
 }
 
@@ -229,23 +223,4 @@ unsigned long WeatherManager::getLastUpdateAge() const {
     return millis() - _lastUpdate;
 }
 
-void WeatherManager::updateConditionShort() {
-    // OpenWeatherMap condition codes
-    if (_conditionCode >= 200 && _conditionCode < 300) {
-        strcpy(_conditionShort, "THN");  // Thunder
-    } else if (_conditionCode >= 300 && _conditionCode < 400) {
-        strcpy(_conditionShort, "DRZ");  // Drizzle
-    } else if (_conditionCode >= 500 && _conditionCode < 600) {
-        strcpy(_conditionShort, "RAN");  // Rain
-    } else if (_conditionCode >= 600 && _conditionCode < 700) {
-        strcpy(_conditionShort, "SNO");  // Snow
-    } else if (_conditionCode >= 700 && _conditionCode < 800) {
-        strcpy(_conditionShort, "FOG");  // Fog/mist/haze
-    } else if (_conditionCode == 800) {
-        strcpy(_conditionShort, "SUN");  // Clear sky
-    } else if (_conditionCode > 800 && _conditionCode < 900) {
-        strcpy(_conditionShort, "CLD");  // Clouds
-    } else {
-        strcpy(_conditionShort, "???");  // Unknown
-    }
-}
+

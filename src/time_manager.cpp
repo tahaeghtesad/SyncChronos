@@ -61,6 +61,13 @@ void TimeManager::startSync() {
     _syncStartTime = millis();
 }
 
+void TimeManager::setTime(unsigned long epoch) {
+    _epochTime = epoch;
+    _timeValid = true;
+    _lastMillis = millis();
+    updateTimeInfo();
+}
+
 bool TimeManager::isSyncing() const {
     return _syncState != NTP_IDLE;
 }

@@ -8,6 +8,7 @@
 #define CONFIG_MANAGER_H
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 // Maximum string lengths
 #define CONFIG_STRING_MAX 64
@@ -112,6 +113,10 @@ public:
     void setWeatherApiKey(const char* key);
     void setWeatherLocation(float lat, float lon);
     void setWeatherUnits(const char* units);
+
+    // Exposed for testing
+    void deserializeConfig(const JsonDocument& doc);
+    void serializeConfig(JsonDocument& doc) const;
 
 private:
     ClockConfig _config;

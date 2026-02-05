@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 #include <WiFiClient.h>
+#include "weather_parser.h"
 
 // Fetch states for non-blocking operation
 enum WeatherFetchState {
@@ -80,6 +81,12 @@ public:
      */
     unsigned long getLastUpdateAge() const;
 
+    /**
+     * Parse JSON response and extract weather data
+     * Exposed for unit testing
+     */
+    bool parseWeatherJson(const String& json);
+
 private:
     // Weather data
     float _temperature;
@@ -101,14 +108,9 @@ private:
     void processFetchState();
     
     /**
-     * Parse JSON response and extract weather data
+     * Process the state machine for non-blocking fetch
      */
-    bool parseResponse(const String& json);
-    
-    /**
-     * Convert condition code to short description
-     */
-    void updateConditionShort();
+    void processFetchState();
     
     /**
      * Build the API request string
