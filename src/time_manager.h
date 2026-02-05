@@ -2,6 +2,7 @@
  * Time Manager Header
  *
  * Handles NTP synchronization and time tracking
+ * Uses non-blocking UDP for NTP requests
  */
 
 #ifndef TIME_MANAGER_H
@@ -10,102 +11,149 @@
 #include "config.h"
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <time.h>
 
+// NTP sync states for non-blocking operation
+enum NtpSyncState {
+    NTP_IDLE,
+    NTP_SENDING,
+    NTP_WAITING,
+    NTP_RECEIVED,
+    NTP_ERROR
+};
+
 class TimeManager {
 public:
-  TimeManager();
+    TimeManager();
 
-  /**
-   * Initialize the time manager
-   */
-  void begin();
+    /**
+     * Initialize the time manager
+     */
+    void begin();
 
-  /**
-   * Synchronize time with NTP server
-   * @return true if sync successful
-   */
-  bool sync();
+    /**
+     * Update time and process NTP state machine
+     * Call this regularly from loop()
+     */
+    void update();
 
-  /**
-   * Update time (call in main loop)
-   */
-  void update();
+    /**
+     * Start a non-blocking NTP sync
+     * Returns immediately, check isSyncing() for status
+     */
+    void startSync();
 
-  /**
-   * Get current hour (0-23)
-   */
-  int getHours() const;
+    /**
+     * Force a blocking sync (legacy)
+     */
+    bool sync();
 
-  /**
-   * Get current hour in 12-hour format (1-12)
-   */
-  int getHours12() const;
+    /**
+     * Check if an NTP sync is in progress
+     */
+    bool isSyncing() const;
 
-  /**
-   * Is it PM?
-   */
-  bool isPM() const;
+    /**
+     * Get current hour (0-23)
+     */
+    int getHours() const;
 
-  /**
-   * Get current minute (0-59)
-   */
-  int getMinutes() const;
+    /**
+     * Get current hour in 12-hour format (1-12)
+     */
+    int getHours12() const;
 
-  /**
-   * Get current second (0-59)
-   */
-  int getSeconds() const;
+    /**
+     * Is it PM?
+     */
+    bool isPM() const;
 
-  /**
-   * Get current year
-   */
-  int getYear() const;
+    /**
+     * Get current minute (0-59)
+     */
+    int getMinutes() const;
 
-  /**
-   * Get current month (1-12)
-   */
-  int getMonth() const;
+    /**
+     * Get current second (0-59)
+     */
+    int getSeconds() const;
 
-  /**
-   * Get current day of month (1-31)
-   */
-  int getDay() const;
+    /**
+     * Get current year
+     */
+    int getYear() const;
 
-  /**
-   * Get day of week (0=Sunday, 6=Saturday)
-   */
-  int getDayOfWeek() const;
+    /**
+     * Get current month (1-12)
+     */
+    int getMonth() const;
 
-  /**
-   * Check if time is valid (has been synced)
-   */
-  bool isTimeValid() const;
+    /**
+     * Get current day of month (1-31)
+     */
+    int getDay() const;
 
-  /**
-   * Get epoch time
-   */
-  unsigned long getEpochTime() const;
+    /**
+     * Get day of week (0=Sunday, 6=Saturday)
+     */
+    int getDayOfWeek() const;
 
-  /**
-   * Set timezone offset in seconds from UTC
-   */
-  void setTimezoneOffset(long offset);
+    /**
+     * Check if time is valid (has been synced)
+     */
+    bool isTimeValid() const;
+
+    /**
+     * Get epoch time
+     */
+    unsigned long getEpochTime() const;
+
+    /**
+     * Set timezone offset in seconds from UTC
+     */
+    void setTimezoneOffset(long offset);
 
 private:
-  WiFiUDP _udp;
-  NTPClient *_ntpClient;
-  bool _timeValid;
-  unsigned long _lastSyncTime;
-  long _timezoneOffset;
+    WiFiUDP _udp;
+    bool _timeValid;
+    unsigned long _lastSyncTime;
+    long _timezoneOffset;
+    
+    // Non-blocking NTP state
+    NtpSyncState _syncState;
+    unsigned long _syncStartTime;
+    static const unsigned long NTP_TIMEOUT = 5000;  // 5 seconds
+    static const int LOCAL_NTP_PACKET_SIZE = 48;
+    uint8_t _ntpPacketBuffer[48];
+    
+    // Local time tracking (seconds since epoch + offset)
+    unsigned long _epochTime;
+    unsigned long _lastMillis;
+    
+    // Cached time components
+    mutable struct tm _timeInfo;
+    mutable unsigned long _lastTimeInfoUpdate;
 
-  // Cached time components
-  mutable struct tm _timeInfo;
-  mutable unsigned long _lastTimeUpdate;
-
-  void updateTimeInfo() const;
+    /**
+     * Process the NTP state machine
+     */
+    void processNtpState();
+    
+    /**
+     * Send NTP request packet
+     */
+    bool sendNtpPacket();
+    
+    /**
+     * Parse NTP response and update time
+     */
+    bool parseNtpResponse();
+    
+    /**
+     * Update cached time info struct
+     */
+    void updateTimeInfo() const;
 };
 
 #endif // TIME_MANAGER_H

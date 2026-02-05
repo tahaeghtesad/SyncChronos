@@ -121,10 +121,10 @@ void setup() {
 }
 
 void loop() {
-    // Periodic NTP sync every 15 minutes
+    // Periodic NTP sync every 15 minutes (non-blocking)
     if (millis() - lastNtpSync >= NTP_SYNC_INTERVAL) {
-        Serial.println("Scheduled NTP sync...");
-        timeManager.sync();
+        Serial.println("Starting scheduled NTP sync...");
+        timeManager.startSync();  // Non-blocking!
         lastNtpSync = millis();
     }
     
