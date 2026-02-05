@@ -1,4 +1,4 @@
-name: VFD Clock CI
+name: SyncChronos CI
 
 on:
   push:
