@@ -2,7 +2,8 @@
 
 An ESP8266-based Internet Clock supporting both **FUTABA 8-MD-06INKM** VFD displays and **MAX7219** LED Matrix modules.
 
-![VFD Clock](docs/images/clock.jpg)
+![VFD Clock](docs/images/vfd.png)
+![Dot Matrix Clock](docs/images/dotmatrix.png)
 
 ## Features
 
