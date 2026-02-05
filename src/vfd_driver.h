@@ -9,6 +9,7 @@
 #define VFD_DRIVER_H
 
 #include "config.h"
+#include "display_driver.h"
 #include <Arduino.h>
 #include <SPI.h>
 
@@ -21,7 +22,7 @@
 #define VFD_CMD_WRITE_DATA 0x20
 #define VFD_CMD_CLEAR_DISPLAY 0x40
 
-class VFDDriver {
+class VFDDriver : public DisplayDriver {
 public:
   VFDDriver();
 
@@ -29,42 +30,42 @@ public:
    * Initialize the VFD display
    * Sets up SPI and initializes the display controller
    */
-  void begin();
+  void begin() override;
 
   /**
    * Clear the display
    */
-  void clear();
+  void clear() override;
 
   /**
    * Set display brightness
    * @param brightness 0-240 (0 = off, 240 = maximum)
    */
-  void setBrightness(uint8_t brightness);
+  void setBrightness(uint8_t brightness) override;
 
   /**
    * Get current brightness setting
    * @return Current brightness value
    */
-  uint8_t getBrightness() const;
+  uint8_t getBrightness() const override;
 
   /**
    * Set cursor position
    * @param position 0-7 for 8-digit display
    */
-  void setCursor(uint8_t position);
+  void setCursor(uint8_t position) override;
 
   /**
    * Print a string to the display
    * @param text String to display (max 8 characters)
    */
-  void print(const char *text);
+  void print(const char *text) override;
 
   /**
    * Print a single character at current cursor position
    * @param c Character to display
    */
-  void printChar(char c);
+  void printChar(char c) override;
 
   /**
    * Write raw data to a digit position

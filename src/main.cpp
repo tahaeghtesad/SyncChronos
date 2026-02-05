@@ -1,13 +1,15 @@
 /**
  * VFD Clock - Main Application
  * 
- * ESP8266 + FUTABA 8-MD-06INKM Dot Matrix VFD Display
+ * ESP8266 + Display (VFD or LED Matrix)
  * 
  * Features:
  * - WiFi connectivity for NTP time sync
  * - Configurable timezone
  * - Brightness control
  * - Multiple display modes (time, date, temp, etc.)
+ * 
+ * Build with -D USE_MAX7219_DISPLAY to use LED matrix instead of VFD
  */
 
 #include <Arduino.h>
@@ -17,14 +19,22 @@
 
 #include "config.h"
 #include "config_manager.h"
-#include "vfd_driver.h"
+#include "display_driver.h"
 #include "time_manager.h"
 #include "wifi_manager.h"
 #include "weather_manager.h"
 #include "web_server.h"
 
+// Conditional display driver selection
+#ifdef USE_MAX7219_DISPLAY
+    #include "max7219_driver.h"
+    MAX7219Driver display;
+#else
+    #include "vfd_driver.h"
+    VFDDriver display;
+#endif
+
 // Global objects
-VFDDriver vfd;
 TimeManager timeManager;
 WiFiManager wifiManager;
 WeatherManager weatherManager;
@@ -69,23 +79,23 @@ void setup() {
     
     // Initialize VFD display
     Serial.println("Initializing VFD display...");
-    vfd.begin();
-    vfd.setBrightness(configManager.getBrightness());
-    vfd.clear();
-    vfd.print("INIT...");
+    display.begin();
+    display.setBrightness(configManager.getBrightness());
+    display.clear();
+    display.print("INIT...");
     
     // Connect to WiFi using saved credentials
     Serial.println("Connecting to WiFi...");
-    vfd.clear();
-    vfd.print("WiFi...");
+    display.clear();
+    display.print("WiFi...");
     
     if (wifiManager.connect(configManager.getWifiSsid(), configManager.getWifiPassword())) {
         Serial.println("WiFi connected!");
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
         
-        vfd.clear();
-        vfd.print("SYNC...");
+        display.clear();
+        display.print("SYNC...");
         
         // Initialize time from NTP with saved timezone
         timeManager.setTimezoneOffset(configManager.getTimezoneOffset());
@@ -101,8 +111,8 @@ void setup() {
         Serial.printf("Web portal: http://%s/\n", WiFi.localIP().toString().c_str());
     } else {
         Serial.println("WiFi failed - running offline");
-        vfd.clear();
-        vfd.print("OFFLINE");
+        display.clear();
+        display.print("OFFLINE");
         delay(1000);
     }
     
@@ -210,8 +220,8 @@ void displayTime() {
                  hours, colonOn ? ':' : ' ', minutes);
     }
     
-    vfd.clear();
-    vfd.print(buffer);
+    display.clear();
+    display.print(buffer);
 }
 
 void displayTimeWithSeconds() {
@@ -221,8 +231,8 @@ void displayTimeWithSeconds() {
              timeManager.getMinutes(),
              timeManager.getSeconds());
     
-    vfd.clear();
-    vfd.print(buffer);
+    display.clear();
+    display.print(buffer);
 }
 
 void displayDate() {
@@ -232,8 +242,8 @@ void displayDate() {
              timeManager.getDay(),
              timeManager.getYear() % 100);
     
-    vfd.clear();
-    vfd.print(buffer);
+    display.clear();
+    display.print(buffer);
 }
 
 void displayWeather() {
@@ -249,8 +259,8 @@ void displayWeather() {
         snprintf(buffer, sizeof(buffer), "WEATHER?");
     }
     
-    vfd.clear();
-    vfd.print(buffer);
+    display.clear();
+    display.print(buffer);
 }
 
 void handleSerialCommands() {
@@ -274,12 +284,12 @@ void handleSerialCommands() {
                 Serial.println("Mode: Weather");
                 break;
             case '+': // Brightness up
-                vfd.setBrightness(min(255, vfd.getBrightness() + 16));
-                Serial.printf("Brightness: %d\n", vfd.getBrightness());
+                display.setBrightness(min(255, display.getBrightness() + 16));
+                Serial.printf("Brightness: %d\n", display.getBrightness());
                 break;
             case '-': // Brightness down
-                vfd.setBrightness(max(0, vfd.getBrightness() - 16));
-                Serial.printf("Brightness: %d\n", vfd.getBrightness());
+                display.setBrightness(max(0, display.getBrightness() - 16));
+                Serial.printf("Brightness: %d\n", display.getBrightness());
                 break;
             case 'r': // Resync time
                 Serial.println("Resyncing time...");

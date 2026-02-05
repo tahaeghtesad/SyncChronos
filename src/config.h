@@ -81,4 +81,16 @@
 // Units: "metric" for Celsius, "imperial" for Fahrenheit
 #define WEATHER_UNITS "imperial"
 
+// =============================================================================
+// MAX7219 LED Matrix Configuration (Alternative Display)
+// =============================================================================
+// Used when building with -D USE_MAX7219_DISPLAY
+// 4 cascaded 8x8 LED modules = 32 columns total
+
+#define MAX7219_PIN_CS   D8   // GPIO15 - Chip Select
+#define MAX7219_PIN_CLK  D5   // GPIO14 - SPI Clock (shared with VFD)
+#define MAX7219_PIN_DATA D7   // GPIO13 - SPI MOSI (shared with VFD)
+
+#define MAX7219_NUM_MODULES 4  // Number of 8x8 modules in chain
+
 #endif // CONFIG_H
