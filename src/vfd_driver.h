@@ -91,10 +91,23 @@ public:
    */
   void defineCustomChar(uint8_t slot, const uint8_t *pattern);
 
+  /**
+   * Set display rotation
+   * @param flipped true = 180 degree rotation
+   */
+  void setRotation(bool flipped) override;
+  
+  /**
+   * Check if display is rotated
+   * @return true if display is flipped 180 degrees
+   */
+  bool isRotated() const override { return _rotated; }
+
 private:
   uint8_t _brightness;
   uint8_t _cursorPos;
   bool _initialized;
+  bool _rotated;
 
   /**
    * Send a command to the VFD controller

@@ -93,11 +93,24 @@ public:
      * Update display from internal framebuffer
      */
     void refresh();
+    
+    /**
+     * Set display rotation
+     * @param flipped true = 180 degree rotation
+     */
+    void setRotation(bool flipped) override;
+    
+    /**
+     * Check if display is rotated
+     * @return true if display is flipped 180 degrees
+     */
+    bool isRotated() const override { return _rotated; }
 
 private:
     uint8_t _brightness;
     uint8_t _cursorCol;
     bool _initialized;
+    bool _rotated;
     
     // Framebuffer: 8 rows x 32 columns (4 modules)
     uint8_t _framebuffer[MAX7219_TOTAL_COLS];

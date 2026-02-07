@@ -113,7 +113,7 @@ static const uint8_t FONT_5X7[][5] PROGMEM = {
 #define CHAR_SPACING 1
 
 MAX7219Driver::MAX7219Driver()
-    : _brightness(128), _cursorCol(0), _initialized(false) {
+    : _brightness(128), _cursorCol(0), _initialized(false), _rotated(false) {
     memset(_framebuffer, 0, sizeof(_framebuffer));
 }
 
@@ -206,15 +206,24 @@ void MAX7219Driver::refresh() {
         SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
         digitalWrite(MAX7219_PIN_CS, LOW);
         
+        // When rotated 180 degrees, we invert row index and reverse bit order
+        uint8_t displayRow = _rotated ? (7 - row) : row;
+        
         // Send data to each module in chain (last module first in data stream)
         for (int8_t module = MAX7219_NUM_MODULES - 1; module >= 0; module--) {
             uint8_t rowData = 0;
             
+            // When rotated, reverse the module order
+            int8_t srcModule = _rotated ? (MAX7219_NUM_MODULES - 1 - module) : module;
+            
             // Build row data from framebuffer columns
             // Each module handles 8 columns
             for (uint8_t col = 0; col < 8; col++) {
-                uint8_t fbCol = module * 8 + col;
-                if (_framebuffer[fbCol] & (1 << row)) {
+                // When rotated, reverse column order within module
+                uint8_t srcCol = _rotated ? (7 - col) : col;
+                uint8_t fbCol = srcModule * 8 + srcCol;
+                
+                if (_framebuffer[fbCol] & (1 << displayRow)) {
                     rowData |= (1 << (7 - col));  // Reverse bit order for display
                 }
             }
@@ -226,6 +235,11 @@ void MAX7219Driver::refresh() {
         digitalWrite(MAX7219_PIN_CS, HIGH);
         SPI.endTransaction();
     }
+}
+
+void MAX7219Driver::setRotation(bool flipped) {
+    _rotated = flipped;
+    refresh();  // Update display with new rotation
 }
 
 void MAX7219Driver::sendToAll(uint8_t reg, uint8_t data) {

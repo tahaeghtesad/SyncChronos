@@ -57,6 +57,18 @@ public:
      * @param c Character to display
      */
     virtual void printChar(char c) { (void)c; }
+    
+    /**
+     * Set display rotation
+     * @param flipped true = 180 degree rotation
+     */
+    virtual void setRotation(bool flipped) { (void)flipped; }
+    
+    /**
+     * Check if display is rotated
+     * @return true if display is flipped 180 degrees
+     */
+    virtual bool isRotated() const { return false; }
 };
 
 #endif // DISPLAY_DRIVER_H

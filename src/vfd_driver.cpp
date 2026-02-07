@@ -12,7 +12,7 @@
 #include "vfd_driver.h"
 
 VFDDriver::VFDDriver()
-    : _brightness(VFD_DEFAULT_BRIGHTNESS), _cursorPos(0), _initialized(false) {}
+    : _brightness(VFD_DEFAULT_BRIGHTNESS), _cursorPos(0), _initialized(false), _rotated(false) {}
 
 void VFDDriver::begin() {
   // Configure pins
@@ -85,18 +85,42 @@ void VFDDriver::setCursor(uint8_t position) {
 void VFDDriver::print(const char *text) {
   setCursor(0);
 
-  uint8_t pos = 0;
-  while (*text && pos < VFD_NUM_DIGITS) {
-    printChar(*text);
-    text++;
-    pos++;
-  }
+  // If rotated, we need to reverse the string
+  if (_rotated) {
+    // Calculate string length (up to display width)
+    uint8_t len = 0;
+    while (text[len] && len < VFD_NUM_DIGITS) len++;
+    
+    // Print in reverse order
+    uint8_t pos = 0;
+    for (int8_t i = len - 1; i >= 0; i--) {
+      printChar(text[i]);
+      pos++;
+    }
+    
+    // Pad with spaces
+    while (pos < VFD_NUM_DIGITS) {
+      printChar(' ');
+      pos++;
+    }
+  } else {
+    uint8_t pos = 0;
+    while (*text && pos < VFD_NUM_DIGITS) {
+      printChar(*text);
+      text++;
+      pos++;
+    }
 
-  // Pad with spaces if string is shorter than display
-  while (pos < VFD_NUM_DIGITS) {
-    printChar(' ');
-    pos++;
+    // Pad with spaces if string is shorter than display
+    while (pos < VFD_NUM_DIGITS) {
+      printChar(' ');
+      pos++;
+    }
   }
+}
+
+void VFDDriver::setRotation(bool flipped) {
+  _rotated = flipped;
 }
 
 void VFDDriver::printChar(char c) {
