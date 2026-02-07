@@ -1,115 +1,145 @@
-# VFD Clock & LED Matrix Display
+# ⏰ SyncChronos
 
-An ESP8266-based Internet Clock supporting both **FUTABA 8-MD-06INKM** VFD displays and **MAX7219** LED Matrix modules.
+An ESP8266-based Internet Clock with **DS3231 RTC backup**, supporting both **FUTABA VFD** and **MAX7219 LED Matrix** displays.
 
 | VFD Display | LED Matrix (MAX7219) |
 |:---:|:---:|
 | <img src="docs/images/vfd.png" height="200" alt="VFD Clock"> | <img src="docs/images/dotmatrix.png" height="200" alt="LED Matrix Clock"> |
 
-## Features
+## ✨ Features
 
-- 🕐 **NTP Time Sync** - Automatic time synchronization via WiFi
-- �️ **Live Weather** - Real-time temperature and conditions from OpenWeatherMap
-- 🌍 **Web Configuration** - Configure WiFi, API keys, and settings via a web portal
-- 💡 **Brightness Control** - Adjustable brightness (VFD and LED Matrix)
-- 📺 **Dual Display Support** - Compile-time selection for VFD or MAX7219
-- 🔌 **Activity Indicators** - Visual feedback for network/weather interactions
-- 💾 **Persistent Settings** - Configuration saved to flash memory
+| Feature | Description |
+|---------|-------------|
+| 🕐 **NTP Time Sync** | Automatic synchronization via WiFi |
+| 🔋 **DS3231 RTC** | Battery-backed hardware clock for time persistence |
+| 🌡️ **Live Weather** | Real-time data from OpenWeatherMap |
+| 🌍 **Web Portal** | Configure everything via browser |
+| 🔄 **Auto-Rotate** | Tilt sensor support for display rotation |
+| 📺 **Dual Display** | VFD or MAX7219 LED matrix |
+| 💡 **Brightness** | Adjustable via web UI or serial |
+| 💾 **Persistent Config** | Settings saved to flash |
 
-## Hardware Support
+## 🔧 Hardware
 
-### 1. FUTABA 8-MD-06INKM VFD
-The default display configuration.
+### ESP8266 Pinout
 
-| VFD Pin | ESP8266 Pin | GPIO | Function |
-|---------|-------------|------|----------|
-| GND     | GND         | -    | Ground   |
-| VCC     | 3.3V        | -    | Power    |
-| CS      | D8          | 15   | Chip Select |
-| CLK     | D5          | 14   | Clock    |
-| DIN     | D7          | 13   | MOSI     |
-| RST     | D6          | 12   | Reset    |
+| Function | ESP8266 | GPIO |
+|----------|---------|------|
+| Display CS | D8 | 15 |
+| Display CLK | D5 | 14 |
+| Display DIN | D7 | 13 |
+| VFD Reset | D6 | 12 |
+| RTC SDA | D2 | 4 |
+| RTC SCL | D1 | 5 |
+| Tilt Sensor | Configurable | - |
 
-### 2. MAX7219 LED Matrix (4x 8x8 Modules)
-Alternative display option.
+### Supported Hardware
+- **VFD**: FUTABA 8-MD-06INKM (default)
+- **LED Matrix**: MAX7219 4x8x8 modules
+- **RTC**: DS3231 (optional, for time persistence)
+- **Tilt Sensor**: Digital tilt switch (optional, for auto-rotation)
 
-| MAX7219 Pin | ESP8266 Pin | GPIO | Function |
-|-------------|-------------|------|----------|
-| VCC         | 5V (USB)    | -    | Power    |
-| GND         | GND         | -    | Ground   |
-| DIN         | D7          | 13   | MOSI     |
-| CS          | D8          | 15   | Chip Select |
-| CLK         | D5          | 14   | Clock    |
-
-## Software Setup
-
-### 1. Prerequisites
-- [PlatformIO](https://platformio.org/install) (VS Code Extension recommended)
-- Python 3 (for verification scripts)
-
-### 2. Configuration
-The clock creates a WiFi Access Point named `VFD-Clock-Setup` on first boot. Connect to it and visit `http://192.168.4.1` to configure:
-- WiFi Credentials
-- OpenWeatherMap API Key
-- Timezone
-- Display Settings
-
-Default settings can also be hardcoded in `src/config.h`.
-
-### 3. Building & Uploading
-Use the included `Makefile` for easy management:
+## 🚀 Quick Start
 
 ```bash
-# Build & Upload for VFD Display (Default)
+# Clone
+git clone https://github.com/tahaeghtesad/SyncChronos.git
+cd SyncChronos
+
+# Build & Upload VFD firmware
 make upload
 
-# Build & Upload for MAX7219 Display
+# Or for MAX7219 display
 make upload-max
 
-# Run Native Unit Tests (Local logic verfication)
+# Monitor serial output
+make monitor
+```
+
+## 📁 Project Structure
+
+```
+SyncChronos/
+├── src/
+│   ├── main.cpp              # Application entry point
+│   ├── config.h              # Compile-time defaults
+│   ├── config_manager.*      # Persistent settings (LittleFS + JSON)
+│   ├── time_manager.*        # NTP sync & time handling
+│   ├── clock_source.h        # Clock source interface
+│   ├── esp8266_clock.*       # Software clock (millis-based)
+│   ├── ds3231_clock.*        # DS3231 RTC clock
+│   ├── display_driver.h      # Display abstraction
+│   ├── vfd_driver.*          # FUTABA VFD driver
+│   ├── max7219_driver.*      # LED matrix driver
+│   ├── tilt_sensor.*         # Orientation detection
+│   ├── weather_manager.*     # OpenWeatherMap integration
+│   ├── wifi_manager.*        # WiFi connection handling
+│   └── web_server.*          # Configuration web portal
+├── test/                     # Unit tests
+├── .github/workflows/        # CI/CD pipelines
+├── platformio.ini            # Build configuration
+└── Makefile                  # Convenience commands
+```
+
+## ⚙️ Configuration
+
+### First Boot
+Connect to `VFD-Clock-Setup` WiFi AP → Open `http://192.168.4.1`
+
+### Web Portal Settings
+- **WiFi** - SSID & password
+- **Time** - NTP server, timezone
+- **Display** - Brightness, show seconds
+- **Weather** - API key, location, units
+- **Hardware** - Clock source, tilt sensor pin, auto-rotate
+
+### Compile-Time Config
+Edit `src/config.h` for default values.
+
+## 🛠️ Makefile Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build all firmware variants |
+| `make upload` | Upload VFD firmware |
+| `make upload-max` | Upload MAX7219 firmware |
+| `make monitor` | Serial monitor (115200) |
+| `make run` | Upload + monitor |
+| `make test` | Run native tests |
+| `make release` | Create release binaries |
+| `make clean` | Clean build artifacts |
+
+## 🧪 Testing
+
+```bash
+# Native tests (runs on host)
 make test-native
 
-# Run Embedded Unit Tests (On Device)
+# Embedded tests (runs on device)
 make test-embedded
 
-# Verify API Keys
+# Verify API keys
 make verify
 ```
 
-### 4. Environments
-The project uses PlatformIO environments to adhere to DRY principles:
-- `esp8266`: Default environment for VFD.
-- `esp8266_max7219`: Environment for MAX7219 (defines `-DUSE_MAX7219_DISPLAY`).
-- `native`: Environment for running unit tests on the host machine.
-
-## Testing
-
-The project includes a robust test suite:
-
-### Native Tests (Host)
-Runs on your computer to verify logic (JSON parsing, config serialization) without hardware.
-```bash
-make test-native
-```
-
-### Embedded Tests (Device)
-Runs on the ESP8266 to verify hardware integration (WiFi, Display drivers).
-```bash
-make test-embedded
-```
-
-## Serial Commands
-Connect at **115200 baud**.
+## 📟 Serial Commands
 
 | Key | Action |
 |-----|--------|
-| `t` | Show Time |
-| `d` | Show Date |
-| `w` | Show Weather |
-| `+` | Increase Brightness |
-| `-` | Decrease Brightness |
-| `r` | Force NTP & Weather Update |
-| `R` | Factory Reset Config |
+| `t` | Time mode |
+| `d` | Date mode |
+| `s` | Seconds mode |
+| `w` | Weather mode |
+| `+` `-` | Brightness ±16 |
+| `r` | Resync NTP |
 
-## License
-MIT License - See [LICENSE](LICENSE) for details.
+## 🔄 CI/CD
+
+- **CI**: Runs tests on every push
+- **CD**: Auto-releases firmware on push to `main`
+  - Dev builds: `dev-<sha>` (pre-release)
+  - Stable builds: `v*` tags (release)
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE)
