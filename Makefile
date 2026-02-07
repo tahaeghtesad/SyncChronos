@@ -1,21 +1,34 @@
-# VFD Clock Build System
+# SyncChronos Build System
 # Wraps PlatformIO commands for convenience
 
 # PlatformIO Executable
 PIO = $(HOME)/.platformio/penv/bin/pio
 
-.PHONY: all build upload monitor clean install-deps help
+.PHONY: all build build-vfd build-max upload upload-vfd upload-max monitor clean install-deps help test release
 
 # Default target
 all: build
 
-# Build the project
-build:
-	$(PIO) run
+# Build all firmware variants
+build: build-vfd build-max
 
-# Build and upload to ESP8266
-upload:
-	$(PIO) run --target upload
+# Build VFD firmware (default)
+build-vfd:
+	$(PIO) run -e esp8266
+
+# Build MAX7219 LED matrix firmware
+build-max:
+	$(PIO) run -e esp8266_max7219
+
+# Build and upload VFD firmware to ESP8266
+upload: upload-vfd
+
+upload-vfd:
+	$(PIO) run -e esp8266 --target upload
+
+# Build and upload MAX7219 firmware
+upload-max:
+	$(PIO) run -e esp8266_max7219 --target upload
 
 # Open serial monitor (115200 baud)
 monitor:
@@ -24,9 +37,12 @@ monitor:
 # Build, upload, and monitor in one command
 run: upload monitor
 
+run-max: upload-max monitor
+
 # Clean build artifacts
 clean:
 	$(PIO) run --target clean
+	rm -rf release/
 
 # Install PlatformIO and project dependencies
 install-deps:
@@ -40,15 +56,18 @@ update-libs:
 # Show project environment info
 info:
 	$(PIO) project config
+	@echo ""
+	@echo "Source files:"
+	@ls -la src/*.cpp src/*.h 2>/dev/null || true
 
-# Run all tests (native + embedded)
-test: test-native test-embedded
+# Run all tests
+test: test-native
 
 # Run native logic tests (host)
 test-native:
 	$(PIO) test -e native
 
-# Run embedded hardware tests (device)
+# Run embedded hardware tests (device) - requires connected device
 test-embedded:
 	$(PIO) test -e esp8266
 
@@ -56,33 +75,58 @@ test-embedded:
 verify:
 	python3 scripts/verify_apis.py
 
-# Build and upload for MAX7219 display
-upload-max:
-	$(PIO) run -e esp8266_max7219 --target upload
-
 # Generate compilation database for IDE support
 compiledb:
 	$(PIO) run --target compiledb
 
+# Create local release package
+release: build
+	@mkdir -p release
+	@VERSION=$$(git describe --tags --always 2>/dev/null || echo "dev"); \
+	cp .pio/build/esp8266/firmware.bin release/SyncChronos_VFD_$$VERSION.bin; \
+	cp .pio/build/esp8266_max7219/firmware.bin release/SyncChronos_MAX7219_$$VERSION.bin; \
+	echo "Release files created in release/"
+	@ls -la release/
+
+# Upload filesystem (LittleFS) to device
+upload-fs:
+	$(PIO) run -e esp8266 --target uploadfs
+
 # Help
 help:
-	@echo "VFD Clock Build System"
+	@echo "SyncChronos Build System"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Targets:"
-	@echo "  build        Build the project (default)"
-	@echo "  upload       Build and upload to ESP8266"
-	@echo "  monitor      Open serial monitor"
-	@echo "  run          Build, upload, and monitor"
-	@echo "  clean        Clean build artifacts"
-	@echo "  install-deps Install PlatformIO and dependencies"
-	@echo "  update-libs  Update libraries to latest versions"
-	@echo "  info         Show project configuration"
-	@echo "  test         Run all tests (native + embedded)"
-	@echo "  test-native  Run logic tests on host"
-	@echo "  test-embedded Run hardware tests on device"
-	@echo "  verify       Verify API keys and network (host)"
-	@echo "  upload-max   Build and upload for MAX7219 display"
-	@echo "  compiledb    Generate compile_commands.json"
-	@echo "  help         Show this help"
+	@echo "Build Targets:"
+	@echo "  build          Build all firmware variants (default)"
+	@echo "  build-vfd      Build VFD display firmware"
+	@echo "  build-max      Build MAX7219 LED matrix firmware"
+	@echo ""
+	@echo "Upload Targets:"
+	@echo "  upload         Build and upload VFD firmware"
+	@echo "  upload-vfd     Build and upload VFD firmware"
+	@echo "  upload-max     Build and upload MAX7219 firmware"
+	@echo "  upload-fs      Upload LittleFS filesystem"
+	@echo ""
+	@echo "Development:"
+	@echo "  monitor        Open serial monitor (115200 baud)"
+	@echo "  run            Build, upload VFD, and monitor"
+	@echo "  run-max        Build, upload MAX7219, and monitor"
+	@echo "  clean          Clean build artifacts"
+	@echo "  compiledb      Generate compile_commands.json"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test           Run all tests (native)"
+	@echo "  test-native    Run logic tests on host"
+	@echo "  test-embedded  Run hardware tests on device"
+	@echo "  verify         Verify API keys and network"
+	@echo ""
+	@echo "Release:"
+	@echo "  release        Create local release package"
+	@echo ""
+	@echo "Setup:"
+	@echo "  install-deps   Install PlatformIO and dependencies"
+	@echo "  update-libs    Update libraries to latest versions"
+	@echo "  info           Show project configuration"
+	@echo "  help           Show this help"
