@@ -108,11 +108,6 @@ private:
     void processFetchState();
     
     /**
-     * Process the state machine for non-blocking fetch
-     */
-    void processFetchState();
-    
-    /**
      * Build the API request string
      */
     String buildRequest();
