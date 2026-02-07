@@ -24,6 +24,10 @@
 #include "wifi_manager.h"
 #include "weather_manager.h"
 #include "web_server.h"
+#include "clock_source.h"
+#include "esp8266_clock.h"
+#include "ds3231_clock.h"
+#include "tilt_sensor.h"
 
 // Conditional display driver selection
 #ifdef USE_MAX7219_DISPLAY
@@ -33,6 +37,13 @@
     #include "vfd_driver.h"
     VFDDriver display;
 #endif
+
+// Clock sources
+ESP8266Clock esp8266Clock;
+DS3231Clock ds3231Clock;
+
+// Tilt sensor for display rotation
+TiltSensor tiltSensor;
 
 // Global objects
 TimeManager timeManager;
@@ -79,8 +90,26 @@ void setup() {
     Serial.println("Loading configuration...");
     configManager.begin();
     
+    // Initialize clock source based on config
+    const ClockConfig& cfg = configManager.getConfig();
+    if (cfg.clockSource == 1) {
+        Serial.println("Using DS3231 RTC clock source");
+        ds3231Clock.begin();
+        timeManager.setClockSource(&ds3231Clock);
+    } else {
+        Serial.println("Using ESP8266 software clock source");
+        esp8266Clock.begin();
+        timeManager.setClockSource(&esp8266Clock);
+    }
+    
+    // Initialize tilt sensor if configured
+    if (cfg.tiltSensorPin > 0 && cfg.autoRotate) {
+        Serial.printf("Initializing tilt sensor on GPIO%d\n", cfg.tiltSensorPin);
+        tiltSensor.begin(cfg.tiltSensorPin);
+    }
+    
     // Initialize VFD display
-    Serial.println("Initializing VFD display...");
+    Serial.println("Initializing display...");
     display.begin();
     display.setBrightness(configManager.getBrightness());
     display.clear();
@@ -140,6 +169,14 @@ void loop() {
     
     // Handle web portal requests
     webPortal.handleClient();
+    
+    // Update tilt sensor and handle display rotation
+    if (tiltSensor.isEnabled()) {
+        tiltSensor.update();
+        if (tiltSensor.hasChanged()) {
+            display.setRotation(tiltSensor.isFlipped());
+        }
+    }
     
     // Determine if we need fast updates for activity indicators
     bool showActivity = configManager.getShowActivityIndicators() && 

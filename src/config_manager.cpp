@@ -156,6 +156,13 @@ void ConfigManager::setDefaults() {
     _config.weatherDisplayStartMax = 28;
     _config.weatherDurationMin = 15;
     _config.weatherDurationMax = 25;
+    
+    // Clock source defaults
+    _config.clockSource = 0;  // ESP8266 software clock
+    
+    // Tilt sensor defaults
+    _config.tiltSensorPin = 0;  // Disabled
+    _config.autoRotate = false;
 }
 
 void ConfigManager::setDeviceName(const char* name) {
@@ -231,6 +238,13 @@ void ConfigManager::deserializeConfig(const JsonDocument& doc) {
     _config.weatherDisplayStartMax = doc["weatherDisplayStartMax"] | 28;
     _config.weatherDurationMin = doc["weatherDurationMin"] | 15;
     _config.weatherDurationMax = doc["weatherDurationMax"] | 25;
+    
+    // Clock source
+    _config.clockSource = doc["clockSource"] | 0;
+    
+    // Tilt sensor
+    _config.tiltSensorPin = doc["tiltSensorPin"] | 0;
+    _config.autoRotate = doc["autoRotate"] | false;
 }
 
 void ConfigManager::serializeConfig(JsonDocument& doc) const {
@@ -251,4 +265,11 @@ void ConfigManager::serializeConfig(JsonDocument& doc) const {
     doc["weatherDisplayStartMax"] = _config.weatherDisplayStartMax;
     doc["weatherDurationMin"] = _config.weatherDurationMin;
     doc["weatherDurationMax"] = _config.weatherDurationMax;
+    
+    // Clock source
+    doc["clockSource"] = _config.clockSource;
+    
+    // Tilt sensor
+    doc["tiltSensorPin"] = _config.tiltSensorPin;
+    doc["autoRotate"] = _config.autoRotate;
 }

@@ -48,6 +48,13 @@ struct ClockConfig {
     uint8_t weatherDisplayStartMax;  // Random start range max (seconds, e.g., 28)
     uint8_t weatherDurationMin;      // Random duration min (seconds, e.g., 15)
     uint8_t weatherDurationMax;      // Random duration max (seconds, e.g., 25)
+    
+    // Clock source
+    uint8_t clockSource;  // 0 = ESP8266 (software), 1 = DS3231 (RTC)
+    
+    // Tilt sensor / display rotation
+    uint8_t tiltSensorPin;  // GPIO pin for tilt sensor (0 = disabled)
+    bool autoRotate;        // Enable auto-rotation from tilt sensor
 };
 
 /**

@@ -54,6 +54,9 @@ void WebPortal::handleGetConfig() {
     doc["weatherDisplayStartMax"] = cfg.weatherDisplayStartMax;
     doc["weatherDurationMin"] = cfg.weatherDurationMin;
     doc["weatherDurationMax"] = cfg.weatherDurationMax;
+    doc["clockSource"] = cfg.clockSource;
+    doc["tiltSensorPin"] = cfg.tiltSensorPin;
+    doc["autoRotate"] = cfg.autoRotate;
     
     String response;
     serializeJson(doc, response);
@@ -125,6 +128,15 @@ void WebPortal::handlePostConfig() {
     }
     if (doc["weatherDurationMax"].is<int>()) {
         cfg.weatherDurationMax = doc["weatherDurationMax"].as<uint8_t>();
+    }
+    if (doc["clockSource"].is<int>()) {
+        cfg.clockSource = doc["clockSource"].as<uint8_t>();
+    }
+    if (doc["tiltSensorPin"].is<int>()) {
+        cfg.tiltSensorPin = doc["tiltSensorPin"].as<uint8_t>();
+    }
+    if (doc["autoRotate"].is<bool>()) {
+        cfg.autoRotate = doc["autoRotate"].as<bool>();
     }
     
     // Save to flash
@@ -454,6 +466,35 @@ String WebPortal::generateHtml() {
             </div>
         </div>
         
+        <div class="card">
+            <h2>Hardware</h2>
+            <div class="field">
+                <label>Clock Source</label>
+                <select id="clockSource">
+                    <option value="0")rawliteral";
+    if (cfg.clockSource == 0) html += " selected";
+    html += R"rawliteral(>ESP8266 (Software)</option>
+                    <option value="1")rawliteral";
+    if (cfg.clockSource == 1) html += " selected";
+    html += R"rawliteral(>DS3231 RTC</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Tilt Sensor GPIO Pin (0 = disabled)</label>
+                <input type="number" id="tiltSensorPin" min="0" max="16" value=")rawliteral";
+    html += String(cfg.tiltSensorPin);
+    html += R"rawliteral(">
+            </div>
+            <div class="field">
+                <label class="toggle-label">
+                    <input type="checkbox" id="autoRotate")rawliteral";
+    if (cfg.autoRotate) html += " checked";
+    html += R"rawliteral(>
+                    <span class="toggle-text">Auto-rotate display based on tilt sensor</span>
+                </label>
+            </div>
+        </div>
+        
         <div class="buttons">
             <button class="btn-save" onclick="saveConfig()">Save</button>
             <button class="btn-restart" onclick="restart()">Restart</button>
@@ -491,7 +532,10 @@ String WebPortal::generateHtml() {
                 weatherDisplayStartMin: parseInt(document.getElementById('weatherDisplayStartMin').value),
                 weatherDisplayStartMax: parseInt(document.getElementById('weatherDisplayStartMax').value),
                 weatherDurationMin: parseInt(document.getElementById('weatherDurationMin').value),
-                weatherDurationMax: parseInt(document.getElementById('weatherDurationMax').value)
+                weatherDurationMax: parseInt(document.getElementById('weatherDurationMax').value),
+                clockSource: parseInt(document.getElementById('clockSource').value),
+                tiltSensorPin: parseInt(document.getElementById('tiltSensorPin').value),
+                autoRotate: document.getElementById('autoRotate').checked
             };
             
             try {

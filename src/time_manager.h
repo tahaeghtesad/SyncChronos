@@ -3,12 +3,14 @@
  *
  * Handles NTP synchronization and time tracking
  * Uses non-blocking UDP for NTP requests
+ * Delegates time storage to ClockSource implementations
  */
 
 #ifndef TIME_MANAGER_H
 #define TIME_MANAGER_H
 
 #include "config.h"
+#include "clock_source.h"
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -37,6 +39,18 @@ public:
      * Call this regularly from loop()
      */
     void update();
+
+    /**
+     * Set the clock source to use
+     * @param source Pointer to a ClockSource implementation
+     */
+    void setClockSource(ClockSource* source);
+
+    /**
+     * Get the current clock source
+     * @return Pointer to current ClockSource
+     */
+    ClockSource* getClockSource() const { return _clockSource; }
 
     /**
      * Start a non-blocking NTP sync
@@ -119,11 +133,18 @@ public:
      */
     void setTimezoneOffset(long offset);
 
+    /**
+     * Get current timezone offset
+     */
+    long getTimezoneOffset() const { return _timezoneOffset; }
+
 private:
     WiFiUDP _udp;
-    bool _timeValid;
     unsigned long _lastSyncTime;
     long _timezoneOffset;
+    
+    // Clock source (delegates time storage)
+    ClockSource* _clockSource;
     
     // Non-blocking NTP state
     NtpSyncState _syncState;
@@ -131,10 +152,6 @@ private:
     static const unsigned long NTP_TIMEOUT = 5000;  // 5 seconds
     static const int LOCAL_NTP_PACKET_SIZE = 48;
     uint8_t _ntpPacketBuffer[48];
-    
-    // Local time tracking (seconds since epoch + offset)
-    unsigned long _epochTime;
-    unsigned long _lastMillis;
     
     // Cached time components
     mutable struct tm _timeInfo;

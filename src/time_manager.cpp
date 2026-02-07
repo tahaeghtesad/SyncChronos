@@ -2,7 +2,7 @@
  * Time Manager Implementation
  *
  * Non-blocking NTP synchronization using raw UDP
- * State machine allows display updates during sync
+ * Delegates time storage to ClockSource implementations
  */
 
 #include "time_manager.h"
@@ -12,9 +12,9 @@
 static const int NTP_PORT = 123;
 
 TimeManager::TimeManager()
-    : _timeValid(false), _lastSyncTime(0),
-      _timezoneOffset(UTC_OFFSET_SECONDS), _syncState(NTP_IDLE),
-      _syncStartTime(0), _epochTime(0), _lastMillis(0),
+    : _lastSyncTime(0),
+      _timezoneOffset(UTC_OFFSET_SECONDS), _clockSource(nullptr),
+      _syncState(NTP_IDLE), _syncStartTime(0),
       _lastTimeInfoUpdate(0) {
     memset(&_timeInfo, 0, sizeof(_timeInfo));
     memset(_ntpPacketBuffer, 0, LOCAL_NTP_PACKET_SIZE);
@@ -25,8 +25,22 @@ void TimeManager::begin() {
     Serial.println("TimeManager initialized (non-blocking)");
     Serial.printf("Timezone offset: %ld seconds\n", _timezoneOffset);
     
+    if (_clockSource) {
+        _clockSource->begin();
+        Serial.printf("Clock source: %s\n", _clockSource->getName());
+    } else {
+        Serial.println("WARNING: No clock source set!");
+    }
+    
     // Start initial sync
     startSync();
+}
+
+void TimeManager::setClockSource(ClockSource* source) {
+    _clockSource = source;
+    if (_clockSource) {
+        Serial.printf("TimeManager: Clock source set to %s\n", _clockSource->getName());
+    }
 }
 
 void TimeManager::update() {
@@ -35,14 +49,9 @@ void TimeManager::update() {
         processNtpState();
     }
     
-    // Update local time based on millis elapsed
-    if (_timeValid) {
-        unsigned long now = millis();
-        unsigned long elapsed = now - _lastMillis;
-        if (elapsed >= 1000) {
-            _epochTime += elapsed / 1000;
-            _lastMillis = now - (elapsed % 1000);
-        }
+    // Update clock source
+    if (_clockSource) {
+        _clockSource->update();
     }
 }
 
@@ -62,9 +71,10 @@ void TimeManager::startSync() {
 }
 
 void TimeManager::setTime(unsigned long epoch) {
-    _epochTime = epoch;
-    _timeValid = true;
-    _lastMillis = millis();
+    if (_clockSource) {
+        // Apply timezone to get local time
+        _clockSource->setEpochTime(epoch + _timezoneOffset);
+    }
     updateTimeInfo();
 }
 
@@ -99,9 +109,7 @@ void TimeManager::processNtpState() {
             
         case NTP_RECEIVED:
             if (parseNtpResponse()) {
-                _timeValid = true;
                 _lastSyncTime = millis();
-                _lastMillis = millis();
                 Serial.printf("NTP: Synced - %02d:%02d:%02d\n", 
                               getHours(), getMinutes(), getSeconds());
             } else {
@@ -167,25 +175,32 @@ bool TimeManager::parseNtpResponse() {
     }
     
     // Convert to Unix epoch and apply timezone
-    _epochTime = secsSince1900 - seventyYears + _timezoneOffset;
+    unsigned long epochTime = secsSince1900 - seventyYears + _timezoneOffset;
+    
+    // Update clock source
+    if (_clockSource) {
+        _clockSource->setEpochTime(epochTime);
+    }
     
     return true;
 }
 
 void TimeManager::updateTimeInfo() const {
+    if (!_clockSource) return;
+    
     unsigned long now = millis();
     if (now - _lastTimeInfoUpdate < 100) {
         return;  // Don't update too frequently
     }
     _lastTimeInfoUpdate = now;
     
-    time_t t = _epochTime;
+    time_t t = _clockSource->getEpochTime();
     gmtime_r(&t, &_timeInfo);
 }
 
 int TimeManager::getHours() const {
-    if (!_timeValid) return 0;
-    return (_epochTime % 86400) / 3600;
+    if (!_clockSource || !_clockSource->isValid()) return 0;
+    return (_clockSource->getEpochTime() % 86400) / 3600;
 }
 
 int TimeManager::getHours12() const {
@@ -200,13 +215,13 @@ bool TimeManager::isPM() const {
 }
 
 int TimeManager::getMinutes() const {
-    if (!_timeValid) return 0;
-    return (_epochTime % 3600) / 60;
+    if (!_clockSource || !_clockSource->isValid()) return 0;
+    return (_clockSource->getEpochTime() % 3600) / 60;
 }
 
 int TimeManager::getSeconds() const {
-    if (!_timeValid) return 0;
-    return _epochTime % 60;
+    if (!_clockSource || !_clockSource->isValid()) return 0;
+    return _clockSource->getEpochTime() % 60;
 }
 
 int TimeManager::getYear() const {
@@ -230,17 +245,19 @@ int TimeManager::getDayOfWeek() const {
 }
 
 bool TimeManager::isTimeValid() const {
-    return _timeValid;
+    return _clockSource && _clockSource->isValid();
 }
 
 unsigned long TimeManager::getEpochTime() const {
-    return _epochTime;
+    if (!_clockSource) return 0;
+    return _clockSource->getEpochTime();
 }
 
 void TimeManager::setTimezoneOffset(long offset) {
     // Adjust epoch time for the offset change
-    if (_timeValid) {
-        _epochTime = _epochTime - _timezoneOffset + offset;
+    if (_clockSource && _clockSource->isValid()) {
+        unsigned long currentEpoch = _clockSource->getEpochTime();
+        _clockSource->setEpochTime(currentEpoch - _timezoneOffset + offset);
     }
     _timezoneOffset = offset;
 }
@@ -255,5 +272,5 @@ bool TimeManager::sync() {
         yield();
     }
     
-    return _timeValid && (millis() - _lastSyncTime < 5000);
+    return isTimeValid() && (millis() - _lastSyncTime < 5000);
 }
