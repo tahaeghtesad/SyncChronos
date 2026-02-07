@@ -2,6 +2,7 @@ name: Release
 
 on:
   push:
+    branches: [ "main", "master" ]
     tags:
       - 'v*'
 
@@ -31,10 +32,30 @@ jobs:
     - name: Build MAX7219 Firmware
       run: pio run -e esp8266_max7219
 
+    - name: Get version info
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "is_tag=true" >> $GITHUB_OUTPUT
+        else
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "is_tag=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Rename firmware files
+      run: |
+        mkdir -p release
+        cp .pio/build/esp8266/firmware.bin release/SyncChronos_VFD_${{ steps.version.outputs.version }}.bin
+        cp .pio/build/esp8266_max7219/firmware.bin release/SyncChronos_MAX7219_${{ steps.version.outputs.version }}.bin
+
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: |
-          .pio/build/esp8266/firmware.bin
-          .pio/build/esp8266_max7219/firmware.bin
+        tag_name: ${{ steps.version.outputs.version }}
+        name: ${{ steps.version.outputs.is_tag == 'true' && steps.version.outputs.version || format('Development Build {0}', steps.version.outputs.version) }}
+        prerelease: ${{ steps.version.outputs.is_tag != 'true' }}
         generate_release_notes: true
+        files: |
+          release/*.bin
