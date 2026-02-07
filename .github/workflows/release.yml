@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+
+    - name: Run Native Tests
+      run: pio test -e native
+
+    - name: Build VFD Firmware
+      run: pio run -e esp8266
+
+    - name: Build MAX7219 Firmware
+      run: pio run -e esp8266_max7219
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          .pio/build/esp8266/firmware.bin
+          .pio/build/esp8266_max7219/firmware.bin
+        generate_release_notes: true
